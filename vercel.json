@@ -5,16 +5,5 @@
   "rewrites": [
     { "source": "/cards", "destination": "/cards.html" },
     { "source": "/cards/(.*)", "destination": "/cards.html" }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    }
   ]
 }
