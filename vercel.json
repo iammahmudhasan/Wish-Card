@@ -1,29 +1,20 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
+  "buildCommand": "echo 'Static site'",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
-  "outputDirectory": ".",
   "rewrites": [
     { "source": "/cards", "destination": "/cards.html" },
     { "source": "/cards/(.*)", "destination": "/cards.html" }
   ],
   "headers": [
     {
-      "source": "/assets/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/(.*).(css|js)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     }
