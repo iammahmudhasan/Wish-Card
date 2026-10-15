@@ -1,12 +1,12 @@
 /**
- * HeartCraft / Wish Card - Interactive Engine
- * Reverse-Engineered & Enhanced with Full Interactivity
+ * WishCard - Complete Interactive & Animation Engine
+ * Reverse-Engineered from Production & Enhanced with Full Autoplay State Machines
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initTrendingCarousel();
-  initTrendingInteractivePreviews();
+  initAutoplayAnimations();
   initTestimonialsSlider();
   initHowItWorksModal();
   initCardStudioModal();
@@ -72,7 +72,7 @@ function initNavbar() {
       const isSubOpen = mobileSubmenu.style.display === 'block';
       mobileSubmenu.style.display = isSubOpen ? 'none' : 'block';
       if (mobileChevron) {
-        mobileChevron.style.transform = isSubOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        mobileChevron.style.transform = isSubOpen ? 'rotate(180deg)' : 'rotate(0deg)';
       }
     });
   }
@@ -97,7 +97,7 @@ function initNavbar() {
 }
 
 /* ==========================================================================
-   2. TRENDING CAROUSEL (ARROWS & INDICATOR)
+   2. TRENDING CAROUSEL (ARROWS & SCROLL INDICATOR)
    ========================================================================== */
 function initTrendingCarousel() {
   const carousel = document.querySelector('.trending__carousel');
@@ -106,7 +106,6 @@ function initTrendingCarousel() {
   const thumb = document.querySelector('.trending__scroll-thumb');
 
   if (!carousel) return;
-
   const scrollStep = 340;
 
   if (leftBtn) {
@@ -125,7 +124,7 @@ function initTrendingCarousel() {
     const updateThumb = () => {
       const maxScroll = carousel.scrollWidth - carousel.clientWidth;
       if (maxScroll > 0) {
-        const pct = (carousel.scrollLeft / maxScroll) * 60; // thumb width is 40%
+        const pct = (carousel.scrollLeft / maxScroll) * 60;
         thumb.style.left = `${pct}%`;
       }
     };
@@ -135,91 +134,31 @@ function initTrendingCarousel() {
 }
 
 /* ==========================================================================
-   3. INTERACTIVE PREVIEWS FOR TRENDING CARDS
+   3. CONTINUOUS AUTOPLAY STATE MACHINES & INTERACTION
    ========================================================================== */
-function initTrendingInteractivePreviews() {
-  setupValentinePreview();
-  setupBirthdayPreview();
-  setupSorryPreview();
-  setupPuzzlePreview();
-  setupAnniversaryPreview();
-  setupFriendshipPreview();
+function initAutoplayAnimations() {
+  startValentineAutoplay();
+  startBirthdayAutoplay();
+  startSorryAutoplay();
+  startPuzzleAutoplay();
+  startAnniversaryAutoplay();
+  startFriendshipAutoplay();
 }
 
 /**
- * 3.1 Valentine Proposal "No" Button Dodger
+ * 3.1 VALENTINE / PROPOSAL AUTOPLAY STATE MACHINE
+ * Cursor glides to 'No', 'No' dodges 6 times, cursor moves to 'Yes', clicks 'Yes', celebration!
  */
-function setupValentinePreview() {
+function startValentineAutoplay() {
   const container = document.querySelector('.trending__preview--valentine');
   if (!container) return;
 
-  const noBtn = container.querySelector('.vt-no-btn');
-  const yesBtn = container.querySelector('.vt-yes-btn');
-  const hint = container.querySelector('.vt-hint');
-  const wrapper = container.querySelector('.vt-scale-wrapper');
-  const cursor = container.querySelector('.vt-cursor');
+  let isInteracted = false;
+  let loopTimer = null;
 
-  if (!noBtn || !yesBtn) return;
+  const runLoop = () => {
+    if (isInteracted) return;
 
-  const hints = [
-    '"No" seems a bit shy 😉',
-    'Are you sure? 🥺',
-    'Nice try! You cannot say No! 😜',
-    'Oops! Try again! 😂',
-    'Love always finds a way! 💖',
-    'Just click YES already! 🥰'
-  ];
-  let dodgeCount = 0;
-
-  const dodge = (e) => {
-    if (e) e.preventDefault();
-    dodgeCount++;
-    hint.textContent = hints[dodgeCount % hints.length];
-
-    // Calculate safe random coordinates inside the button container
-    const xPositions = [-80, 80, -60, 70, -75, 65];
-    const yPositions = [-45, 45, -35, 40, -50, 35];
-    const x = xPositions[dodgeCount % xPositions.length];
-    const y = yPositions[dodgeCount % yPositions.length];
-    const rot = (Math.random() * 20 - 10).toFixed(1);
-
-    noBtn.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(0.9)`;
-    yesBtn.style.transform = `scale(${1 + Math.min(dodgeCount * 0.08, 0.45)})`;
-  };
-
-  noBtn.addEventListener('mouseenter', dodge);
-  noBtn.addEventListener('touchstart', dodge, { passive: false });
-  noBtn.addEventListener('click', dodge);
-
-  // Yes Button Celebration
-  yesBtn.addEventListener('click', () => {
-    fireConfetti(container);
-    wrapper.innerHTML = `
-      <div class="vt-result" style="animation: vtResultIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
-        <span style="font-size: 3rem; margin-bottom: 8px;">💖💍🎉</span>
-        <h3 class="vt-result-title" style="color: #e8456b; font-size: 1.3rem; margin: 0 0 6px;">She Said YES! 💖</h3>
-        <p class="vt-result-sub" style="color: #6e5c62; font-size: 0.85rem; margin: 0 0 12px;">The best love story begins today!</p>
-        <button class="vt-yes-btn" style="padding: 6px 18px; font-size: 12px; min-width: auto;" onclick="resetValentinePreview()">Replay 💫</button>
-      </div>
-    `;
-    if (cursor) cursor.style.display = 'none';
-  });
-
-  // Automated simulated cursor demo when idle
-  let autoTimer = setTimeout(() => {
-    if (cursor && dodgeCount === 0) {
-      cursor.style.opacity = '1';
-      cursor.style.transform = 'translate(195px, 150px)';
-      setTimeout(() => {
-        dodge();
-        setTimeout(() => {
-          cursor.style.transform = 'translate(100px, 150px)';
-        }, 600);
-      }, 700);
-    }
-  }, 2500);
-
-  window.resetValentinePreview = () => {
     container.innerHTML = `
       <div class="vt-container">
         <div class="vt-scale-wrapper">
@@ -231,386 +170,590 @@ function setupValentinePreview() {
           </div>
           <p class="vt-hint">"No" seems a bit shy</p>
         </div>
-        <div class="vt-cursor" style="opacity:0;transform:translate(185px, 218px)">
+        <div class="vt-cursor" style="opacity:0;transform:translate(185px, 218px); transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;">
           <svg width="17" height="24" viewBox="0 0 17 24"><path d="M0 0 L0 20 L4.5 15.5 L8 23 L11 21.5 L7.5 14 L13 14 Z" fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"></path></svg>
         </div>
       </div>
     `;
-    setupValentinePreview();
+
+    const noBtn = container.querySelector('.vt-no-btn');
+    const yesBtn = container.querySelector('.vt-yes-btn');
+    const hint = container.querySelector('.vt-hint');
+    const cursor = container.querySelector('.vt-cursor');
+    const wrapper = container.querySelector('.vt-scale-wrapper');
+
+    // Interactive override on user hover/touch
+    const manualDodge = (e) => {
+      if (e) e.preventDefault();
+      isInteracted = true;
+      clearTimeout(loopTimer);
+      if (cursor) cursor.style.opacity = '0';
+
+      const x = (Math.random() * 140 - 70).toFixed(0);
+      const y = (Math.random() * 80 - 40).toFixed(0);
+      noBtn.style.transform = `translate(${x}px, ${y}px) scale(0.85)`;
+      yesBtn.style.transform = `scale(1.25)`;
+      hint.textContent = 'Nice try! You cannot say No! 😜';
+    };
+
+    noBtn.addEventListener('mouseenter', manualDodge);
+    noBtn.addEventListener('touchstart', manualDodge, { passive: false });
+
+    yesBtn.addEventListener('click', () => {
+      isInteracted = true;
+      clearTimeout(loopTimer);
+      triggerValentineCelebration(wrapper, container);
+    });
+
+    // Automated loop sequence
+    const dodges = [
+      { x: 55, y: -30, hint: 'Are you sure? 🥺' },
+      { x: -65, y: 25, hint: 'Think again! 😜' },
+      { x: 70, y: 35, hint: 'You cannot say No! 💕' },
+      { x: -60, y: -35, hint: 'Just say YES already! 🥰' }
+    ];
+
+    let step = 0;
+    const executeStep = () => {
+      if (isInteracted) return;
+
+      if (step === 0) {
+        cursor.style.opacity = '1';
+        cursor.style.transform = 'translate(195px, 155px)';
+        loopTimer = setTimeout(() => { step++; executeStep(); }, 700);
+      } else if (step <= dodges.length) {
+        const d = dodges[step - 1];
+        noBtn.style.transform = `translate(${d.x}px, ${d.y}px) scale(${Math.max(0.65, 1 - step * 0.08)})`;
+        yesBtn.style.transform = `scale(${1 + step * 0.08})`;
+        hint.textContent = d.hint;
+
+        // Move cursor towards new No position
+        cursor.style.transform = `translate(${185 + d.x * 0.6}px, ${145 + d.y * 0.6}px)`;
+
+        loopTimer = setTimeout(() => { step++; executeStep(); }, 850);
+      } else if (step === dodges.length + 1) {
+        // Cursor glides towards Yes
+        cursor.style.transform = 'translate(110px, 150px)';
+        loopTimer = setTimeout(() => { step++; executeStep(); }, 650);
+      } else if (step === dodges.length + 2) {
+        // Clicks Yes
+        yesBtn.style.transform = 'scale(1.35)';
+        cursor.style.transform = 'translate(110px, 150px) scale(0.85)';
+        loopTimer = setTimeout(() => {
+          cursor.style.opacity = '0';
+          triggerValentineCelebration(wrapper, container);
+          // Wait 6 seconds, then restart loop
+          loopTimer = setTimeout(() => {
+            isInteracted = false;
+            runLoop();
+          }, 6500);
+        }, 350);
+      }
+    };
+
+    loopTimer = setTimeout(executeStep, 1000);
   };
+
+  function triggerValentineCelebration(wrapper, cont) {
+    fireConfetti(cont);
+    wrapper.innerHTML = `
+      <div class="vt-result" style="animation: vtResultIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
+        <span style="font-size: 3.2rem; margin-bottom: 6px;">💖💍🎉</span>
+        <h3 class="vt-result-title" style="color: #e8456b; font-size: 1.35rem; margin: 0 0 4px;">She Said YES! 💖</h3>
+        <p class="vt-result-sub" style="color: #6e5c62; font-size: 0.85rem; margin: 0 0 12px;">Knew you'd say yes!</p>
+        <button class="vt-yes-btn" style="padding: 6px 18px; font-size: 12px; min-width: auto;" onclick="startValentineAutoplay()">Replay 💫</button>
+      </div>
+    `;
+  }
+
+  runLoop();
 }
 
 /**
- * 3.2 Birthday Card Multi-Stage Interactive Preview
+ * 3.2 BIRTHDAY CARD AUTOPLAY STATE MACHINE
+ * QR scan -> Countdown 03.. 02.. 01.. -> Balloons pop -> Cake candles blow -> Letter typewriter!
  */
-function setupBirthdayPreview() {
+function startBirthdayAutoplay() {
   const container = document.querySelector('.trending__preview--birthday');
   if (!container) return;
 
-  const content = container.querySelector('.bd-content');
-  if (!content) return;
+  const content = container.querySelector('.bd-content') || container;
+  let loopTimer = null;
 
-  let currentStage = 0;
+  const timeline = [
+    { id: 'qr', duration: 2400 },
+    { id: 'countdown', duration: 2200 },
+    { id: 'balloons', duration: 3200 },
+    { id: 'cake', duration: 2400 },
+    { id: 'letter', duration: 5000 }
+  ];
 
-  const renderStage = (stage) => {
-    currentStage = stage;
-    content.classList.add('bd-content--fading');
-    setTimeout(() => {
-      content.classList.remove('bd-content--fading');
+  let currentIdx = 0;
 
-      if (stage === 0) {
-        // Stage 0: QR Scan
-        content.innerHTML = `
-          <div class="bd-screen bd-screen--center">
-            <div class="bd-qr-container" style="cursor: pointer;" onclick="advanceBirthday(1)">
-              <div class="bd-qr-card">
-                <img src="assets/birthday_qr.webp" class="bd-qr-img" alt="Birthday QR"/>
-                <div class="bd-qr-label">Divya's Birthday!</div>
-                <div class="bd-qr-scanline"></div>
-              </div>
-              <span class="bd-hint">Tap to open</span>
+  const renderStage = () => {
+    const stage = timeline[currentIdx];
+
+    if (stage.id === 'qr') {
+      content.innerHTML = `
+        <div class="bd-screen bd-screen--center">
+          <div class="bd-qr-container">
+            <div class="bd-qr-card">
+              <img src="assets/birthday_qr.webp" class="bd-qr-img" alt="Birthday QR"/>
+              <div class="bd-qr-label">Divya's Birthday!</div>
+              <div class="bd-qr-scanline"></div>
             </div>
-          </div>
-        `;
-      } else if (stage === 1) {
-        // Stage 1: Countdown Invitation
-        content.innerHTML = `
-          <div class="bd-screen bd-screen--celeb">
-            <span class="bd-inv-sub">Virtual Birthday Bash</span>
-            <span class="bd-inv-name">Happy Birthday Divya</span>
-            <div class="bd-inv-divider"></div>
-            <span class="bd-inv-begin">Party begins now</span>
-            <div class="bd-timer-row">
-              <div class="bd-timer-col"><span class="bd-timer-num">00</span><span class="bd-timer-lbl">Days</span></div>
-              <span class="bd-timer-colon">:</span>
-              <div class="bd-timer-col"><span class="bd-timer-num">00</span><span class="bd-timer-lbl">Hours</span></div>
-              <span class="bd-timer-colon">:</span>
-              <div class="bd-timer-col"><span class="bd-timer-num">00</span><span class="bd-timer-lbl">Mins</span></div>
-            </div>
-            <button class="bd-btn" onclick="advanceBirthday(2)">Pop Balloons! 🎈</button>
-          </div>
-        `;
-      } else if (stage === 2) {
-        // Stage 2: Balloons popping
-        content.innerHTML = `
-          <div class="bd-screen" style="padding: 10px;">
-            <p style="color: #fff; font-size: 11px; margin-bottom: 8px; font-weight: 600;">Tap balloons to pop!</p>
-            <div class="bd-balloons-row">
-              <div class="bd-balloon-wrapper" onclick="popBalloon(this, 'H')">
-                <div class="bd-balloon-visual">
-                  <div class="bd-balloon-body" style="background: #ff4757;"></div>
-                  <div class="bd-balloon-highlight"></div>
-                  <div class="bd-balloon-text-outer"><span class="bd-balloon-text">H</span></div>
-                </div>
-                <div class="bd-balloon-string"></div>
-              </div>
-              <div class="bd-balloon-wrapper" onclick="popBalloon(this, 'B')">
-                <div class="bd-balloon-visual">
-                  <div class="bd-balloon-body" style="background: #ffa502;"></div>
-                  <div class="bd-balloon-highlight"></div>
-                  <div class="bd-balloon-text-outer"><span class="bd-balloon-text">B</span></div>
-                </div>
-                <div class="bd-balloon-string"></div>
-              </div>
-              <div class="bd-balloon-wrapper" onclick="popBalloon(this, 'D')">
-                <div class="bd-balloon-visual">
-                  <div class="bd-balloon-body" style="background: #2ed573;"></div>
-                  <div class="bd-balloon-highlight"></div>
-                  <div class="bd-balloon-text-outer"><span class="bd-balloon-text">D</span></div>
-                </div>
-                <div class="bd-balloon-string"></div>
-              </div>
-              <div class="bd-balloon-wrapper" onclick="popBalloon(this, '!')">
-                <div class="bd-balloon-visual">
-                  <div class="bd-balloon-body" style="background: #1e90ff;"></div>
-                  <div class="bd-balloon-highlight"></div>
-                  <div class="bd-balloon-text-outer"><span class="bd-balloon-text">!</span></div>
-                </div>
-                <div class="bd-balloon-string"></div>
-              </div>
-            </div>
-            <button id="bd-to-cake" class="bd-btn bd-btn--sm" style="display: none; margin-top: 15px;" onclick="advanceBirthday(3)">Next: Cut Cake 🎂</button>
-          </div>
-        `;
-      } else if (stage === 3) {
-        // Stage 3: Cake & Candle
-        content.innerHTML = `
-          <div class="bd-screen" style="padding: 10px;">
-            <div class="bd-cake-title-row">
-              <span class="bd-cake-letter bd-cake-letter--c0">H</span>
-              <span class="bd-cake-letter bd-cake-letter--c1">B</span>
-              <span class="bd-cake-letter bd-cake-letter--c2">D</span>
-              <span class="bd-cake-letter bd-cake-letter--c3">!</span>
-            </div>
-            <div id="cake-container" style="font-size: 3.5rem; line-height: 1; margin: 4px 0; text-align: center;">
-              🎂✨
-            </div>
-            <button id="blow-btn" class="bd-btn bd-btn--sm bd-btn--cake-action" onclick="blowCandle()">Blow Candle 🕯️</button>
-            <button id="letter-btn" class="bd-btn bd-btn--sm bd-btn--cake-action" style="display:none;" onclick="advanceBirthday(4)">Read Letter 💌</button>
-          </div>
-        `;
-      } else if (stage === 4) {
-        // Stage 4: Letter
-        content.innerHTML = `
-          <div class="bd-screen" style="padding: 8px;">
-            <div class="bd-letter-card bd-letter-card--appear" style="width: 90%; padding: 10px;">
-              <h4 class="bd-letter-title" style="margin: 0 0 4px; font-size: 11px;">Dear Divya,</h4>
-              <p id="bd-typewriter" class="bd-letter-body" style="font-size: 9px; line-height: 1.4; color: #5a3e42; margin: 0;"></p>
-            </div>
-            <button class="bd-btn bd-btn--sm" style="margin-top: 8px;" onclick="advanceBirthday(0)">Replay 🎉</button>
-          </div>
-        `;
-        typewriterEffect('bd-typewriter', "Happy Birthday to someone who brings so much joy into everyone's life! May all your wishes come true today and always. ❤️", 25);
-      }
-    }, 150);
-  };
-
-  window.advanceBirthday = (st) => renderStage(st);
-
-  let poppedCount = 0;
-  window.popBalloon = (wrapper, letter) => {
-    const body = wrapper.querySelector('.bd-balloon-body');
-    const text = wrapper.querySelector('.bd-balloon-text');
-    const string = wrapper.querySelector('.bd-balloon-string');
-    if (body.classList.contains('bd-balloon-body--popped')) return;
-
-    body.classList.add('bd-balloon-body--popped');
-    if (text) text.classList.add('bd-balloon-text--revealed');
-    if (string) string.classList.add('bd-balloon-string--gone');
-    poppedCount++;
-
-    if (poppedCount >= 2) {
-      const nextBtn = document.getElementById('bd-to-cake');
-      if (nextBtn) nextBtn.style.display = 'inline-block';
-    }
-  };
-
-  window.blowCandle = () => {
-    fireConfetti(container);
-    const cake = document.getElementById('cake-container');
-    const blowBtn = document.getElementById('blow-btn');
-    const letterBtn = document.getElementById('letter-btn');
-    if (cake) cake.innerHTML = '🎂🎉🥳';
-    if (blowBtn) blowBtn.style.display = 'none';
-    if (letterBtn) letterBtn.style.display = 'inline-block';
-  };
-
-  const qrContainer = container.querySelector('.bd-qr-container');
-  if (qrContainer) {
-    qrContainer.style.cursor = 'pointer';
-    qrContainer.addEventListener('click', () => renderStage(1));
-  }
-}
-
-/**
- * 3.3 Sorry Card Interactive Preview
- */
-function setupSorryPreview() {
-  const container = document.querySelector('.trending__preview--sorry');
-  if (!container) return;
-
-  const wrapper = container.querySelector('.sorry-preview-wrapper');
-  if (!wrapper) return;
-
-  const qrCard = wrapper.querySelector('.qr-card');
-  if (!qrCard) return;
-
-  qrCard.style.cursor = 'pointer';
-  qrCard.addEventListener('click', () => {
-    wrapper.innerHTML = `
-      <div class="sorry-screen" style="animation: noteAppear 0.4s ease forwards;">
-        <span style="font-size: 2.2rem; margin-bottom: 2px;">🥺🐾</span>
-        <h3 class="greeting-text" style="font-size: 18px; margin: 4px 0;">I am so sorry...</h3>
-        <p class="greeting-sub" style="margin: 0 0 10px;">Will you please forgive me?</p>
-        <div class="meter-track" style="width: 80%;">
-          <div id="forgive-meter" class="meter-fill" style="width: 20%; background: #e91e8c;"></div>
-        </div>
-        <p id="meter-pct-lbl" style="color: #ff69b4; font-size: 11px; margin: 4px 0 8px; font-weight: bold;">Forgiveness: 20%</p>
-        <button id="forgive-btn" class="btn-pink" onclick="boostForgiveness()">Tap to Forgive 💖</button>
-      </div>
-    `;
-  });
-
-  let pct = 20;
-  window.boostForgiveness = () => {
-    pct += 40;
-    const meter = document.getElementById('forgive-meter');
-    const lbl = document.getElementById('meter-pct-lbl');
-    const btn = document.getElementById('forgive-btn');
-
-    if (pct < 100) {
-      if (meter) meter.style.width = `${pct}%`;
-      if (lbl) lbl.textContent = `Forgiveness: ${pct}%`;
-    } else {
-      if (meter) meter.style.width = '100%';
-      if (lbl) lbl.textContent = 'Forgiveness: 1000% (OVERFLOW!) 💖';
-      fireConfetti(container);
-
-      setTimeout(() => {
-        wrapper.innerHTML = `
-          <div class="sorry-screen" style="animation: noteAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
-            <div class="note-card" style="padding: 12px; border-radius: 10px; width: 92%;">
-              <span style="font-size: 1.8rem;">💌</span>
-              <h4 style="color: #e91e8c; margin: 2px 0 6px; font-size: 12px;">Forgiven!</h4>
-              <p style="color: #5a3e42; font-size: 9.5px; line-height: 1.4; margin: 0; font-family: cursive;">
-                "I know I messed up, but you mean the absolute world to me. Can we make up? Ice cream on me? 🍦🥺💖"
-              </p>
-            </div>
-            <button class="btn-pink" style="margin-top: 8px; font-size: 10px; padding: 5px 14px;" onclick="resetSorryPreview()">Replay 💫</button>
-          </div>
-        `;
-      }, 700);
-    }
-  };
-
-  window.resetSorryPreview = () => {
-    wrapper.innerHTML = `
-      <div class="sorry-screen">
-        <div class="qr-card qr-pop-in" style="cursor: pointer;">
-          <img src="assets/heart_qr.webp" class="qr-img" alt="QR"/>
-          <div class="qr-overlay"><span class="qr-overlay-text">Someone</span></div>
-          <div class="scan-line"></div>
-        </div>
-        <span class="hint-text hint-text--mt">Tap to open</span>
-      </div>
-    `;
-    setupSorryPreview();
-  };
-}
-
-/**
- * 3.4 Surprise Photo Puzzle Interactive Preview
- */
-function setupPuzzlePreview() {
-  const container = document.querySelector('.trending__preview--puzzle');
-  if (!container) return;
-
-  const grid = container.querySelector('.pz-grid');
-  if (!grid) return;
-
-  const pieces = grid.querySelectorAll('.pz-piece');
-  let selected = null;
-
-  pieces.forEach((piece, idx) => {
-    piece.style.cursor = 'pointer';
-    piece.addEventListener('click', () => {
-      if (!selected) {
-        selected = piece;
-        piece.style.outline = '2px solid #e91e63';
-      } else {
-        // Swap positions
-        const tempTransform = selected.style.transform;
-        selected.style.transform = piece.style.transform;
-        piece.style.transform = tempTransform;
-
-        selected.style.outline = 'none';
-        selected = null;
-      }
-    });
-  });
-
-  // Clicking badge triggers puzzle solve reveal
-  const badge = container.querySelector('.pz-overlay-badge');
-  if (badge) {
-    badge.style.cursor = 'pointer';
-    badge.addEventListener('click', () => {
-      fireConfetti(container);
-      container.innerHTML = `
-        <div class="pz-container">
-          <div class="pz-msg-container pz-msg-container--visible" style="opacity: 1; transform: scale(1);">
-            <div class="pz-msg-emojis">✨🧩❤️</div>
-            <h4 class="pz-msg-title">Puzzle <span>Solved!</span></h4>
-            <div class="pz-msg-card">
-              <p class="pz-msg-note">"You put the pieces of my heart together. Will you go out with me this weekend? 🌸"</p>
-            </div>
-            <button class="pz-continue-btn" onclick="resetPuzzlePreview()">Replay 🧩</button>
+            <span class="bd-hint">Tap to open</span>
           </div>
         </div>
       `;
-    });
-  }
+    } else if (stage.id === 'countdown') {
+      content.innerHTML = `
+        <div class="bd-screen bd-screen--celeb">
+          <span class="bd-inv-sub">Virtual Birthday Bash</span>
+          <span class="bd-inv-name">Happy Birthday Divya</span>
+          <div class="bd-inv-divider"></div>
+          <span class="bd-inv-begin">Party begins now</span>
+          <div class="bd-timer-row">
+            <div class="bd-timer-col"><span class="bd-timer-num">00</span><span class="bd-timer-lbl">hrs</span></div>
+            <span class="bd-timer-colon">:</span>
+            <div class="bd-timer-col"><span class="bd-timer-num">00</span><span class="bd-timer-lbl">min</span></div>
+            <span class="bd-timer-colon">:</span>
+            <div class="bd-timer-col"><span id="bd-ticker-sec" class="bd-timer-num">03</span><span class="bd-timer-lbl">sec</span></div>
+          </div>
+          <button class="bd-btn bd-btn--click">BEGIN 🎉</button>
+        </div>
+      `;
+      let s = 3;
+      const tick = setInterval(() => {
+        s--;
+        const el = document.getElementById('bd-ticker-sec');
+        if (el) el.textContent = String(s).padStart(2, '0');
+        if (s <= 1) clearInterval(tick);
+      }, 700);
+    } else if (stage.id === 'balloons') {
+      content.innerHTML = `
+        <div class="bd-screen" style="padding: 10px;">
+          <div class="bd-lights">
+            <span class="bd-light-bulb" style="background:#ff4757;"></span>
+            <span class="bd-light-bulb" style="background:#ffd700;"></span>
+            <span class="bd-light-bulb" style="background:#00d2ff;"></span>
+            <span class="bd-light-bulb" style="background:#7bed9f;"></span>
+          </div>
+          <p style="color: #fff; font-size: 11px; margin-bottom: 8px; font-weight: 600;">Popping Balloons! 🎈</p>
+          <div class="bd-balloons-row">
+            <div class="bd-balloon-wrapper" id="balloon-0">
+              <div class="bd-balloon-visual">
+                <div class="bd-balloon-body" style="background: #e86b86;"></div>
+                <div class="bd-balloon-highlight"></div>
+                <div class="bd-balloon-text-outer"><span class="bd-balloon-text">You</span></div>
+              </div>
+              <div class="bd-balloon-string"></div>
+            </div>
+            <div class="bd-balloon-wrapper" id="balloon-1">
+              <div class="bd-balloon-visual">
+                <div class="bd-balloon-body" style="background: #e1a334;"></div>
+                <div class="bd-balloon-highlight"></div>
+                <div class="bd-balloon-text-outer"><span class="bd-balloon-text">are</span></div>
+              </div>
+              <div class="bd-balloon-string"></div>
+            </div>
+            <div class="bd-balloon-wrapper" id="balloon-2">
+              <div class="bd-balloon-visual">
+                <div class="bd-balloon-body" style="background: #4db66a;"></div>
+                <div class="bd-balloon-highlight"></div>
+                <div class="bd-balloon-text-outer"><span class="bd-balloon-text">so</span></div>
+              </div>
+              <div class="bd-balloon-string"></div>
+            </div>
+            <div class="bd-balloon-wrapper" id="balloon-3">
+              <div class="bd-balloon-visual">
+                <div class="bd-balloon-body" style="background: #4d8fd0;"></div>
+                <div class="bd-balloon-highlight"></div>
+                <div class="bd-balloon-text-outer"><span class="bd-balloon-text">special</span></div>
+              </div>
+              <div class="bd-balloon-string"></div>
+            </div>
+          </div>
+        </div>
+      `;
 
-  window.resetPuzzlePreview = () => {
+      // Pop sequentially
+      [0, 1, 2, 3].forEach((i, idx) => {
+        setTimeout(() => {
+          const b = document.getElementById(`balloon-${i}`);
+          if (b) {
+            const body = b.querySelector('.bd-balloon-body');
+            const text = b.querySelector('.bd-balloon-text');
+            const str = b.querySelector('.bd-balloon-string');
+            if (body) body.classList.add('bd-balloon-body--popped');
+            if (text) text.classList.add('bd-balloon-text--revealed');
+            if (str) str.classList.add('bd-balloon-string--gone');
+          }
+        }, 450 + idx * 550);
+      });
+    } else if (stage.id === 'cake') {
+      content.innerHTML = `
+        <div class="bd-screen" style="padding: 10px;">
+          <div class="bd-cake-title-row">
+            <span class="bd-cake-letter bd-cake-letter--c0">H</span>
+            <span class="bd-cake-letter bd-cake-letter--c1">B</span>
+            <span class="bd-cake-letter bd-cake-letter--c2">D</span>
+            <span class="bd-cake-letter bd-cake-letter--c3">!</span>
+          </div>
+          <div id="bd-cake-visual" style="font-size: 3.5rem; line-height: 1; margin: 4px 0; text-align: center;">
+            🎂🕯️
+          </div>
+          <button id="bd-cake-btn" class="bd-btn bd-btn--sm bd-btn--cake-action">Blow Candle 🕯️</button>
+        </div>
+      `;
+
+      // Blow candle after 1.1s
+      setTimeout(() => {
+        const visual = document.getElementById('bd-cake-visual');
+        const btn = document.getElementById('bd-cake-btn');
+        if (visual) visual.innerHTML = '🎂🎉✨';
+        if (btn) btn.textContent = 'Candles Blown! 🥳';
+        fireConfetti(container);
+      }, 1200);
+    } else if (stage.id === 'letter') {
+      content.innerHTML = `
+        <div class="bd-screen" style="padding: 8px;">
+          <div class="bd-letter-card bd-letter-card--appear" style="width: 90%; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h4 class="bd-letter-title" style="margin: 0 0 4px; font-size: 11px;">Dear Divya,</h4>
+            <p id="bd-auto-typewriter" class="bd-letter-body" style="font-size: 9.5px; line-height: 1.45; color: #5a3e42; margin: 0; min-height: 50px; font-family: cursive;"></p>
+          </div>
+        </div>
+      `;
+      typewriterEffect('bd-auto-typewriter', "Happy Birthday to someone who brings so much joy into everyone's life! May all your wishes come true today and always. ❤️", 22);
+    }
+
+    loopTimer = setTimeout(() => {
+      currentIdx = (currentIdx + 1) % timeline.length;
+      renderStage();
+    }, stage.duration);
+  };
+
+  renderStage();
+}
+
+/**
+ * 3.3 SORRY CARD AUTOPLAY STATE MACHINE
+ * QR scan -> Greeting -> Forgiveness Meter -> Envelope tap & open -> Apology note
+ */
+function startSorryAutoplay() {
+  const container = document.querySelector('.trending__preview--sorry');
+  if (!container) return;
+
+  const wrapper = container.querySelector('.sorry-preview-wrapper') || container;
+  let loopTimer = null;
+
+  const timeline = [
+    { id: 'qr', duration: 2500 },
+    { id: 'greeting', duration: 2400 },
+    { id: 'meter', duration: 3200 },
+    { id: 'envelope', duration: 2200 },
+    { id: 'note', duration: 5500 }
+  ];
+
+  let currentIdx = 0;
+
+  const renderStage = () => {
+    const stage = timeline[currentIdx];
+
+    if (stage.id === 'qr') {
+      wrapper.innerHTML = `
+        <div class="sorry-screen">
+          <div class="qr-card qr-pop-in">
+            <img src="assets/heart_qr.webp" class="qr-img" alt="QR"/>
+            <div class="qr-overlay"><span class="qr-overlay-text">Someone</span></div>
+            <div class="scan-line"></div>
+          </div>
+          <span class="hint-text hint-text--mt">Scanning surprise...</span>
+        </div>
+      `;
+    } else if (stage.id === 'greeting') {
+      wrapper.innerHTML = `
+        <div class="sorry-screen" style="animation: noteAppear 0.4s ease forwards;">
+          <div class="greeting-char-container">
+            <span style="font-size: 2.8rem;">🥺🐾</span>
+            <div class="greeting-hearts">
+              <span class="floating-heart floating-heart--1">❤️</span>
+              <span class="floating-heart floating-heart--2">💝</span>
+              <span class="floating-heart floating-heart--3">💖</span>
+            </div>
+          </div>
+          <p class="greeting-text" style="font-size: 18px; margin: 6px 0 2px;">I am so sorry...</p>
+          <p class="greeting-sub" style="margin: 0 0 10px;">Will you please forgive me?</p>
+          <button class="btn-pink" style="font-size: 11px; padding: 6px 16px;">Forgive Me 🥺</button>
+        </div>
+      `;
+    } else if (stage.id === 'meter') {
+      wrapper.innerHTML = `
+        <div class="sorry-screen" style="animation: noteAppear 0.4s ease forwards;">
+          <p class="meter-label">Measuring Love & Forgiveness</p>
+          <p id="sorry-pct-text" class="meter-percent" style="font-size: 32px; color: #ff69b4;">0%</p>
+          <div class="meter-track" style="width: 85%;">
+            <div id="sorry-pct-bar" class="meter-fill" style="width: 0%; background: linear-gradient(90deg, #ff69b4, #e91e8c);"></div>
+          </div>
+          <p id="sorry-warn" class="warn-text" style="display:none; color: #ff758c; margin-top: 8px;">❤️ OVERFLOW: 120% FORGIVEN! ❤️</p>
+        </div>
+      `;
+
+      let progress = 0;
+      const meterInterval = setInterval(() => {
+        progress += 5;
+        const pctText = document.getElementById('sorry-pct-text');
+        const pctBar = document.getElementById('sorry-pct-bar');
+        const warn = document.getElementById('sorry-warn');
+
+        if (pctText && pctBar) {
+          pctText.textContent = `${progress}%`;
+          pctBar.style.width = `${Math.min(progress, 100)}%`;
+
+          if (progress >= 100) {
+            pctText.classList.add('meter-percent--overflow');
+            if (warn) warn.style.display = 'block';
+          }
+        }
+
+        if (progress >= 120) {
+          clearInterval(meterInterval);
+          fireConfetti(container);
+        }
+      }, 90);
+    } else if (stage.id === 'envelope') {
+      wrapper.innerHTML = `
+        <div class="sorry-screen">
+          <div class="envelope-wrapper envelope-tap">
+            <span style="font-size: 3.5rem;">💌</span>
+            <p class="envelope-label" style="font-size: 12px; margin-top: 6px;">Opening personal letter...</p>
+          </div>
+        </div>
+      `;
+    } else if (stage.id === 'note') {
+      wrapper.innerHTML = `
+        <div class="sorry-screen" style="animation: noteAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;">
+          <div class="note-card" style="padding: 14px; border-radius: 12px; width: 92%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <span style="font-size: 1.8rem;">💝</span>
+            <h4 style="color: #e91e8c; margin: 2px 0 6px; font-size: 12px;">I'm Really Sorry, Cutiepie</h4>
+            <p id="sorry-typewriter" style="color: #5a3e42; font-size: 10px; line-height: 1.45; margin: 0; font-family: cursive;"></p>
+          </div>
+        </div>
+      `;
+      typewriterEffect('sorry-typewriter', "I accidentally upset the most precious person in my world — you. Please forgive me, I promise I didn't mean to. Ice cream date on me? 🍦🥺💕", 20);
+    }
+
+    loopTimer = setTimeout(() => {
+      currentIdx = (currentIdx + 1) % timeline.length;
+      renderStage();
+    }, stage.duration);
+  };
+
+  renderStage();
+}
+
+/**
+ * 3.4 SURPRISE PHOTO PUZZLE AUTOPLAY STATE MACHINE
+ * Scrambled pieces -> Cursor solves puzzle -> ✅ Solved badge -> Love message reveal!
+ */
+function startPuzzleAutoplay() {
+  const container = document.querySelector('.trending__preview--puzzle');
+  if (!container) return;
+
+  let loopTimer = null;
+
+  const runLoop = () => {
     container.innerHTML = `
       <div class="pz-container">
         <div class="pz-scale-wrapper">
           <div class="pz-grid-wrapper">
             <div class="pz-grid-card">
               <div class="pz-grid" style="width:169px;height:169px">
-                <div class="pz-piece" style="transform:translate(0px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px 0px"></div>
-                <div class="pz-piece" style="transform:translate(55px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px 0px"></div>
-                <div class="pz-piece" style="transform:translate(110px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px 0px"></div>
-                <div class="pz-piece" style="transform:translate(0px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px -55px"></div>
-                <div class="pz-piece" style="transform:translate(55px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px -55px"></div>
-                <div class="pz-piece" style="transform:translate(110px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px -55px"></div>
-                <div class="pz-piece" style="transform:translate(0px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px -110px"></div>
-                <div class="pz-piece" style="transform:translate(55px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px -110px"></div>
-                <div class="pz-piece" style="transform:translate(110px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px -110px"></div>
-                <div class="pz-overlay-badge"><span>✨ Tap to Solve</span></div>
+                <div id="pz-0" class="pz-piece" style="transform:translate(55px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px 0px"></div>
+                <div id="pz-1" class="pz-piece" style="transform:translate(0px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px 0px"></div>
+                <div id="pz-2" class="pz-piece" style="transform:translate(110px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px 0px"></div>
+                <div id="pz-3" class="pz-piece" style="transform:translate(0px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px -55px"></div>
+                <div id="pz-4" class="pz-piece" style="transform:translate(110px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px -55px"></div>
+                <div id="pz-5" class="pz-piece" style="transform:translate(110px, 55px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px -55px"></div>
+                <div id="pz-6" class="pz-piece" style="transform:translate(0px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:0px -110px"></div>
+                <div id="pz-7" class="pz-piece" style="transform:translate(55px, 110px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-55px -110px"></div>
+                <div id="pz-8" class="pz-piece" style="transform:translate(55px, 0px);background-image:url(assets/Logo-Selfi.webp);background-size:165px 165px;background-position:-110px -110px"></div>
+                <div id="pz-badge" class="pz-overlay-badge"><span>✨ Solving...</span></div>
+                <div id="pz-cur" class="pz-cursor" style="opacity:1;transform:translate(60px, 60px);"><svg width="18" height="24" viewBox="0 0 16 20"><path d="M 1 1 L 1 16 L 4.5 12 L 7.5 19 L 10 18 L 7 11 L 11 11 Z" fill="#000" stroke="#FFF" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
               </div>
             </div>
           </div>
         </div>
       </div>
     `;
-    setupPuzzlePreview();
-  };
-}
 
-/**
- * 3.5 Anniversary Special Phone Mockup
- */
-function setupAnniversaryPreview() {
-  const container = document.querySelector('.trending__preview--anniversary');
-  if (!container) return;
+    // Solve after 1.8s
+    loopTimer = setTimeout(() => {
+      // Realign to solved grid
+      const correctCoords = [
+        { x: 0, y: 0 }, { x: 55, y: 0 }, { x: 110, y: 0 },
+        { x: 0, y: 55 }, { x: 55, y: 55 }, { x: 110, y: 55 },
+        { x: 0, y: 110 }, { x: 55, y: 110 }, { x: 110, y: 110 }
+      ];
+      correctCoords.forEach((c, i) => {
+        const piece = document.getElementById(`pz-${i}`);
+        if (piece) {
+          piece.style.transition = 'transform 0.6s ease';
+          piece.style.transform = `translate(${c.x}px, ${c.y}px)`;
+        }
+      });
 
-  const phone = container.querySelector('.tpda-phone');
-  if (!phone) return;
+      const badge = document.getElementById('pz-badge');
+      if (badge) {
+        badge.innerHTML = '<span style="background: rgba(16, 185, 129, 0.9);">✅ Solved!</span>';
+      }
 
-  const yesBtn = phone.querySelector('.tpda-yes');
-  const noBtn = phone.querySelector('.tpda-no');
+      const cur = document.getElementById('pz-cur');
+      if (cur) cur.style.opacity = '0';
 
-  if (noBtn) {
-    let noDodge = 0;
-    noBtn.addEventListener('mouseenter', () => {
-      noDodge++;
-      noBtn.className = `tpda-btn tpda-no tpda-no--dodge-${(noDodge % 3) + 1}`;
-    });
-  }
-
-  if (yesBtn) {
-    yesBtn.addEventListener('click', () => {
       fireConfetti(container);
-      phone.innerHTML = `
-        <div class="tpda-notch"></div>
-        <div class="tpda-screen tpda-s3" style="padding-top: 32px; animation: tpda-screen-in 0.4s ease;">
-          <h4 class="tpda-s3__title" style="font-size: 1.1rem; margin: 4px 0;">Love Meter</h4>
-          <p class="tpda-s3__sub" style="font-size: 8px;">Measuring infinite affection</p>
-          <div class="tpda-s3__meter-wrap is-full">
-            <div class="tpda-s3__meter" style="width: 70px; height: 140px;">
-              <div class="tpda-s3__fill" style="height: 100%;"></div>
-              <div class="tpda-s3__center">
-                <span class="tpda-s3__pct" style="font-size: 13px;">100%</span>
-                <span style="font-size: 14px;">💖</span>
+
+      // Reveal special message
+      loopTimer = setTimeout(() => {
+        container.innerHTML = `
+          <div class="pz-container">
+            <div class="pz-msg-container pz-msg-container--visible" style="opacity: 1; transform: scale(1);">
+              <div class="pz-msg-emojis">💖✨💜</div>
+              <h4 class="pz-msg-title">A Special Message <span>♥</span></h4>
+              <div class="pz-msg-card">
+                <p class="pz-msg-note">"You put the pieces of my heart together. You make every day brighter just by being you! 💫"</p>
+              </div>
+              <div class="pz-msg-img-wrapper">
+                <img src="assets/Logo-Selfi.webp" class="pz-msg-img" alt="Photo" />
               </div>
             </div>
           </div>
-          <button class="tpda-btn tpda-yes" style="margin-top: 14px; font-size: 10px; padding: 5px 14px;" onclick="resetAnniversaryPreview()">Replay 💫</button>
-        </div>
-        <div class="tpda-home-bar"></div>
-      `;
-    });
-  }
+        `;
 
-  window.resetAnniversaryPreview = () => {
-    location.reload();
+        // Restart loop after 5.5s
+        loopTimer = setTimeout(runLoop, 5500);
+      }, 1800);
+    }, 1800);
   };
+
+  runLoop();
 }
 
 /**
- * 3.6 Friendship Day Interactive Preview
+ * 3.5 ANNIVERSARY SPECIAL IPHONE MOCKUP AUTOPLAY
+ * Falling hearts -> Countdown -> Couple -> Love Meter 100% -> Letter -> Bouquet
  */
-function setupFriendshipPreview() {
+function startAnniversaryAutoplay() {
+  const container = document.querySelector('.trending__preview--anniversary');
+  if (!container) return;
+
+  const phone = container.querySelector('.tpda-phone') || container;
+  let loopTimer = null;
+
+  const timeline = [
+    { id: 's1', duration: 3200 },
+    { id: 's3', duration: 3000 },
+    { id: 's5', duration: 2400 },
+    { id: 's6', duration: 5000 }
+  ];
+
+  let currentIdx = 0;
+
+  const renderStage = () => {
+    const stage = timeline[currentIdx];
+
+    if (stage.id === 's1') {
+      phone.innerHTML = `
+        <div class="tpda-notch"></div>
+        <div class="tpda-bg-hearts" aria-hidden="true">
+          <span class="tpda-bg-heart" style="left:15%;width:18px;height:18px;--dur:8s;--delay:0s;--rot:12deg;"><svg viewBox="0 0 32 32"><path d="M16 28C16 28 3 20 3 11.5C3 7 6.5 3.5 11 3.5C13.5 3.5 15.5 5 16 6.5C16.5 5 18.5 3.5 21 3.5C25.5 3.5 29 7 29 11.5C29 20 16 28 16 28Z" fill="#F57BA0"/></svg></span>
+          <span class="tpda-bg-heart" style="left:75%;width:16px;height:16px;--dur:9s;--delay:1s;--rot:-15deg;"><svg viewBox="0 0 32 32"><path d="M16 28C16 28 3 20 3 11.5C3 7 6.5 3.5 11 3.5C13.5 3.5 15.5 5 16 6.5C16.5 5 18.5 3.5 21 3.5C25.5 3.5 29 7 29 11.5C29 20 16 28 16 28Z" fill="#F57BA0"/></svg></span>
+        </div>
+        <div class="tpda-screen tpda-s1">
+          <div class="tpda-s1__kicker">1st anniversary</div>
+          <h1 class="tpda-s1__title">Happy Anniversary,<span class="tpda-s1__name">my love</span></h1>
+          <div class="tpda-s1__couple"><img src="assets/couple.webp" alt="Couple"/></div>
+          <div class="tpda-s1__cd">
+            <div class="tpda-s1__cd-label">Our day arrives in</div>
+            <div class="tpda-s1__cd-row">
+              <div class="tpda-s1__cd-cell"><span class="tpda-s1__cd-num">365</span><span class="tpda-s1__cd-unit">days</span></div>
+              <span class="tpda-s1__cd-colon">·</span>
+              <div class="tpda-s1__cd-cell"><span class="tpda-s1__cd-num">12</span><span class="tpda-s1__cd-unit">hrs</span></div>
+              <span class="tpda-s1__cd-colon">·</span>
+              <div class="tpda-s1__cd-cell"><span class="tpda-s1__cd-num">00</span><span class="tpda-s1__cd-unit">min</span></div>
+            </div>
+          </div>
+          <p class="tpda-s1__question">Ready for a little surprise?</p>
+          <div class="tpda-s1__actions">
+            <span class="tpda-btn tpda-yes is-clicking">Yes</span>
+            <span class="tpda-btn tpda-no">No</span>
+          </div>
+        </div>
+        <div class="tpda-home-bar"></div>
+      `;
+    } else if (stage.id === 's3') {
+      phone.innerHTML = `
+        <div class="tpda-notch"></div>
+        <div class="tpda-screen tpda-s3">
+          <h4 class="tpda-s3__title">Love Meter</h4>
+          <p class="tpda-s3__sub">Measuring our infinite bond</p>
+          <div class="tpda-s3__meter-wrap is-full">
+            <div class="tpda-s3__meter" style="width: 72px; height: 150px;">
+              <div id="tpda-meter-fill" class="tpda-s3__fill" style="height: 10%; transition: height 1.8s cubic-bezier(0.34, 1.56, 0.64, 1);"></div>
+              <div class="tpda-s3__center">
+                <span id="tpda-pct-num" class="tpda-s3__pct">10%</span>
+                <span style="font-size: 16px;">💖</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tpda-home-bar"></div>
+      `;
+      setTimeout(() => {
+        const fill = document.getElementById('tpda-meter-fill');
+        const num = document.getElementById('tpda-pct-num');
+        if (fill) fill.style.height = '100%';
+        if (num) num.textContent = '100%';
+        fireConfetti(container);
+      }, 200);
+    } else if (stage.id === 's5') {
+      phone.innerHTML = `
+        <div class="tpda-notch"></div>
+        <div class="tpda-screen tpda-s5 is-blown">
+          <div class="tpda-s5__kicker">Sweet Celebration</div>
+          <h3 class="tpda-s5__title">Make A Wish 🎂</h3>
+          <div style="font-size: 4rem; text-align: center; margin-top: 2rem;">🎂✨</div>
+        </div>
+        <div class="tpda-home-bar"></div>
+      `;
+    } else if (stage.id === 's6') {
+      phone.innerHTML = `
+        <div class="tpda-notch"></div>
+        <div class="tpda-screen tpda-s6">
+          <h4 class="tpda-s6__title">A Love Letter</h4>
+          <div class="tpda-s6__letter-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+            <div class="tpda-s6__seal">💌</div>
+            <p id="tpda-letter-txt" class="tpda-s6__letter-text"></p>
+          </div>
+        </div>
+        <div class="tpda-home-bar"></div>
+      `;
+      typewriterEffect('tpda-letter-txt', "Dear my love,\n\nFrom the very first day, you have been my favorite chapter. Thank you for the small things — the smiles, the morning glances, and holding my hand.\n\nAlways yours 💕", 20);
+    }
+
+    loopTimer = setTimeout(() => {
+      currentIdx = (currentIdx + 1) % timeline.length;
+      renderStage();
+    }, stage.duration);
+  };
+
+  renderStage();
+}
+
+/**
+ * 3.6 FRIENDSHIP DAY AUTOPLAY
+ */
+function startFriendshipAutoplay() {
   const container = document.querySelector('.trending__preview--friendship');
   if (!container) return;
 
@@ -618,16 +761,32 @@ function setupFriendshipPreview() {
   const message = container.querySelector('.fd-message');
   if (!btn || !message) return;
 
+  const quotes = [
+    'Happy Friendship Day! 🫂',
+    'To my partner in crime 💛',
+    'Always got your back! ✨',
+    'Best friends forever & always 💕'
+  ];
+  let qIdx = 0;
+
+  setInterval(() => {
+    qIdx = (qIdx + 1) % quotes.length;
+    message.style.opacity = '0';
+    message.style.transform = 'translateY(6px)';
+    setTimeout(() => {
+      message.textContent = quotes[qIdx];
+      message.style.opacity = '1';
+      message.style.transform = 'translateY(0)';
+    }, 300);
+  }, 3500);
+
   btn.addEventListener('click', () => {
     fireConfetti(container);
-    message.textContent = 'You are the best friend ever! 💖';
-    message.style.color = '#e11d48';
-    btn.textContent = 'Hugs Sent! 🤗';
+    message.textContent = 'Hugs & Love Sent! 🤗💛';
+    btn.textContent = 'Bestie! ✨';
     setTimeout(() => {
-      message.textContent = 'Happy Friendship Day! 🫂';
-      message.style.color = '#3f2a12';
       btn.textContent = 'Open Surprise 🎁';
-    }, 3000);
+    }, 2500);
   });
 }
 
@@ -667,12 +826,10 @@ function initTestimonialsSlider() {
     });
   };
 
-  // Add click listeners to dots
   dots.forEach((dot, i) => {
     dot.addEventListener('click', () => updateSlides(i));
   });
 
-  // Clicking side slide navigates directly
   slides.forEach((slide, i) => {
     slide.style.cursor = 'pointer';
     slide.addEventListener('click', () => {
@@ -680,7 +837,6 @@ function initTestimonialsSlider() {
     });
   });
 
-  // Auto rotation
   let autoSlideTimer = setInterval(() => {
     updateSlides(currentIndex + 1);
   }, 4500);
@@ -703,9 +859,9 @@ function initHowItWorksModal() {
   if (!cards.length) return;
 
   const stepDetails = [
-    { title: 'Step 1: Pick a Card', img: 'assets/pencil.webp', desc: 'Choose from our curated collection of interactive birthday, proposal, apology, anniversary, friendship and thank you cards.' },
-    { title: 'Step 2: Add Your Love', img: 'assets/plan.webp', desc: 'Personalize the card with your favorite photos, secret inside jokes, cute messages, and interactive surprises.' },
-    { title: 'Step 3: Send With Love', img: 'assets/target.webp', desc: 'Send your personalized card as a single link via WhatsApp, Instagram or SMS. No app download needed for them!' }
+    { title: 'Step 1: Pick a Card', img: 'assets/pencil.svg', desc: 'Choose from our curated collection of interactive birthday, proposal, apology, anniversary, friendship and thank you cards.' },
+    { title: 'Step 2: Add Your Love', img: 'assets/plan.svg', desc: 'Personalize the card with your favorite photos, secret inside jokes, cute messages, and interactive surprises.' },
+    { title: 'Step 3: Send With Love', img: 'assets/target.svg', desc: 'Send your personalized card as a single link via WhatsApp, Instagram or SMS. No app download needed for them!' }
   ];
 
   cards.forEach((card, idx) => {
@@ -715,12 +871,12 @@ function initHowItWorksModal() {
       const modal = document.createElement('div');
       modal.className = 'how-it-works__modal';
       modal.innerHTML = `
-        <div class="how-it-works__modal-content" style="max-width: 420px; text-align: center; padding: 2rem;">
+        <div class="how-it-works__modal-content" style="max-width: 440px; text-align: center; padding: 2.25rem; border-radius: 1.5rem;">
           <button class="how-it-works__modal-close">&times;</button>
-          <img src="${step.img}" alt="${step.title}" style="width: 80px; height: 80px; margin: 0 auto 1rem;" />
-          <h3 style="font-family: Poppins, sans-serif; font-size: 1.3rem; margin-bottom: 0.5rem; color: #1a1a1a;">${step.title}</h3>
-          <p style="font-family: Poppins, sans-serif; font-size: 0.95rem; line-height: 1.6; color: #555; margin-bottom: 1.5rem;">${step.desc}</p>
-          <button class="hero__cta hero__cta--secondary" style="background: #efa7d6; color: #1a1a1a; border: none; padding: 0.6rem 1.5rem;" onclick="this.closest('.how-it-works__modal').remove(); openStudio();">Try It Now ✨</button>
+          <img src="${step.img}" alt="${step.title}" style="width: 100px; height: 100px; margin: 0 auto 1.25rem;" />
+          <h3 style="font-family: Poppins, sans-serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; color: #1a1a1a;">${step.title}</h3>
+          <p style="font-family: Poppins, sans-serif; font-size: 0.95rem; line-height: 1.6; color: #555; margin-bottom: 1.75rem;">${step.desc}</p>
+          <button class="hero__cta hero__cta--secondary" style="background: #efa7d6; color: #1a1a1a; border: none; padding: 0.75rem 2rem; border-radius: 999px; font-weight: 600;" onclick="this.closest('.how-it-works__modal').remove(); openStudio();">Try It Now ✨</button>
         </div>
       `;
       document.body.appendChild(modal);
@@ -734,14 +890,12 @@ function initHowItWorksModal() {
 }
 
 /* ==========================================================================
-   6. INTERACTIVE CARD STUDIO MODAL & CARD PLAYER
+   6. WISHCARD STUDIO MODAL & FULLSCREEN PLAYER
    ========================================================================== */
 function initCardStudioModal() {
-  // Bind all "Create now" / "Pick a card" CTAs
   document.querySelectorAll('a[href*="create"], a.hero__cta, a.categories__bento-card, a.trending__cta, a.cta__button').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const href = btn.getAttribute('href');
-      // If anchor internal link (like #categories or cards.html), let normal navigation work
       if (href && (href.startsWith('#') || href.includes('cards.html') || href.includes('about') || href.includes('instagram'))) {
         return;
       }
@@ -769,19 +923,19 @@ window.openStudio = (initialOccasion = 'birthday') => {
   modal.id = 'card-studio-modal';
   modal.style.cssText = `
     position: fixed; inset: 0; z-index: 9999;
-    background: rgba(26, 10, 26, 0.7);
-    backdrop-filter: blur(8px);
+    background: rgba(26, 10, 26, 0.75);
+    backdrop-filter: blur(10px);
     display: flex; justify-content: center; align-items: center;
     padding: 1rem; animation: fadeIn 0.25s ease;
   `;
 
   modal.innerHTML = `
-    <div style="background: #fff; width: 100%; max-width: 520px; border-radius: 1.5rem; box-shadow: 0 25px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; font-family: 'Poppins', sans-serif;">
+    <div style="background: #fff; width: 100%; max-width: 520px; border-radius: 1.5rem; box-shadow: 0 25px 60px rgba(0,0,0,0.35); overflow: hidden; position: relative; font-family: 'Poppins', sans-serif;">
       <!-- Header -->
       <div style="background: linear-gradient(135deg, #edc9e0 0%, #efa7d6 100%); padding: 1.5rem 1.75rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.06);">
         <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <img src="assets/logo.png" style="width: 28px; height: 28px; object-fit: contain;" alt="HeartCraft" />
-          <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #1c1917;">HeartCraft Studio</h3>
+          <img src="assets/logo.png" style="width: 28px; height: 28px; object-fit: contain;" alt="WishCard" />
+          <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #1c1917;">WishCard Studio</h3>
         </div>
         <button id="studio-close" style="background: none; border: none; font-size: 1.75rem; color: #5a3a4e; cursor: pointer; line-height: 1;">&times;</button>
       </div>
@@ -858,9 +1012,6 @@ window.openStudio = (initialOccasion = 'birthday') => {
   });
 };
 
-/**
- * Fullscreen Interactive Card Player
- */
 function playFullscreenCard(occasion, to, from, msg) {
   const player = document.createElement('div');
   player.id = 'fullscreen-card-player';
@@ -874,14 +1025,12 @@ function playFullscreenCard(occasion, to, from, msg) {
   player.innerHTML = `
     <button onclick="this.closest('#fullscreen-card-player').remove()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
 
-    <div style="width: 100%; max-width: 380px; height: 600px; background: #fff; border-radius: 2rem; box-shadow: 0 30px 80px rgba(0,0,0,0.5); overflow: hidden; position: relative; display: flex; flex-direction: column; font-family: 'Poppins', sans-serif;">
-      <!-- Top phone bar -->
+    <div style="width: 100%; max-width: 380px; height: 580px; background: #fff; border-radius: 2rem; box-shadow: 0 30px 80px rgba(0,0,0,0.5); overflow: hidden; position: relative; display: flex; flex-direction: column; font-family: 'Poppins', sans-serif;">
       <div style="background: #fdf2f8; padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <span style="font-size: 0.8rem; font-weight: 600; color: #9b2a6e;">HeartCraft Card</span>
+        <span style="font-size: 0.8rem; font-weight: 600; color: #9b2a6e;">WishCard Surprise</span>
         <span style="font-size: 0.8rem; color: #999;">Just now</span>
       </div>
 
-      <!-- Card Stage Content -->
       <div id="player-stage" style="flex: 1; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(180deg, #fff 0%, #fff0f5 100%);">
         <span style="font-size: 4rem; margin-bottom: 1rem; animation: floatBounce 2s ease infinite;">🎁</span>
         <h2 style="font-family: 'Playfair Display', serif; color: #9b2a6e; font-size: 1.8rem; margin: 0 0 0.5rem;">For ${to}</h2>
@@ -933,7 +1082,7 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 3500);
 }
 
-function typewriterEffect(elementId, text, speed = 30) {
+function typewriterEffect(elementId, text, speed = 25) {
   const el = document.getElementById(elementId);
   if (!el) return;
   el.textContent = '';
@@ -1009,7 +1158,7 @@ function renderConfetti() {
     const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.vy += 0.25; // gravity
+    p.vy += 0.25;
     p.alpha -= 0.015;
     p.rotation += p.vRot;
 

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="planeMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F3E8FF"/>
+    </linearGradient>
+    <linearGradient id="planeWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DDD6FE"/>
+      <stop offset="100%" stop-color="#C084FC"/>
+    </linearGradient>
+    <linearGradient id="planeShadowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+    <filter id="planeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="8" stdDeviation="6" flood-color="#9333EA" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Ground shadow -->
+  <ellipse cx="60" cy="102" rx="36" ry="7" fill="#C084FC" opacity="0.25"/>
+
+  <!-- Paper Plane Group tilted in flight -->
+  <g transform="translate(62,54) rotate(-12) translate(-62,-54)" filter="url(#planeShadow)">
+    <!-- Underside shadow fold -->
+    <polygon points="26,72 96,28 62,78" fill="url(#planeShadowGrad)"/>
+    <!-- Left Wing -->
+    <polygon points="26,72 96,28 50,62" fill="url(#planeWing)"/>
+    <!-- Right Main Body / Wing -->
+    <polygon points="96,28 26,72 58,54" fill="url(#planeMain)"/>
+    <!-- Center Crease -->
+    <line x1="96" y1="28" x2="26" y2="72" stroke="#C084FC" stroke-width="1.5" stroke-opacity="0.5"/>
+  </g>
+
+  <!-- Dotted Love Trail with Mini Heart -->
+  <path d="M16 90 Q 28 86, 36 76" stroke="#EC4899" stroke-width="2.5" stroke-dasharray="3 4" stroke-linecap="round"/>
+  <path d="M18 92 C 16 90, 14 86, 17 84 C 19 83, 21 84, 22 86 C 23 84, 25 83, 27 84 C 30 86, 28 90, 22 95 Z" fill="#F43F5E" transform="scale(0.8) translate(2, 10)"/>
+
+  <!-- Sparkles -->
+  <circle cx="100" cy="22" r="3" fill="#FBBF24"/>
+  <circle cx="106" cy="34" r="2" fill="#F472B6"/>
+</svg>
