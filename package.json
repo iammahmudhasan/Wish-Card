@@ -1,21 +1,18 @@
 {
   "name": "wish-card",
   "version": "1.0.0",
-  "description": "HeartCraft / Wish Card - Personalized Interactive Digital Greeting Cards",
+  "description": "WishCard - Personalized Interactive Digital Greeting Cards",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build": "node -e \"console.log('Static site build complete')\""
   },
   "keywords": [
     "wish-card",
     "greeting-cards",
     "interactive-cards",
-    "heartcraft",
-    "digital-cards",
-    "valentine",
-    "birthday",
-    "anniversary"
+    "digital-cards"
   ],
   "author": "Mahmud Hasan",
   "license": "MIT"
