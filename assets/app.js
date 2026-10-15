@@ -4,6 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof checkAndRenderSharedCard === 'function' && checkAndRenderSharedCard()) return;
   initNavbar();
   initTrendingCarousel();
   initAutoplayAnimations();
@@ -915,6 +916,678 @@ function initCardStudioModal() {
   });
 }
 
+/* ==========================================================================
+   SOUND FX SYNTHESIZER (Pure Web Audio API - Self-Contained)
+   ========================================================================== */
+const SoundFX = {
+  ctx: null,
+  enabled: true,
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  },
+  playPop() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.08);
+    } catch (e) {}
+  },
+  playChime() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        const t = this.ctx.currentTime + (idx * 0.09);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    } catch (e) {}
+  },
+  playFanfare() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        const t = this.ctx.currentTime + (idx * 0.12);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+        osc.start(t);
+        osc.stop(t + 0.9);
+      });
+    } catch (e) {}
+  },
+  playPuff() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const bufSize = Math.floor(this.ctx.sampleRate * 0.25);
+      const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+      filter.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      src.start();
+    } catch (e) {}
+  }
+};
+
+/* ==========================================================================
+   SHARED CARD URL PARSER & RECIPIENT ROUTER
+   ========================================================================== */
+function parseCardDataFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  let card = params.get('card') || params.get('c');
+  let to = params.get('to');
+  let from = params.get('from');
+  let msg = params.get('msg') || params.get('message');
+  const w = params.get('w') || params.get('data');
+
+  if (w) {
+    try {
+      const decoded = JSON.parse(decodeURIComponent(escape(atob(w))));
+      if (decoded.card) card = decoded.card;
+      if (decoded.to) to = decoded.to;
+      if (decoded.from) from = decoded.from;
+      if (decoded.msg) msg = decoded.msg;
+    } catch (e) {
+      console.warn('Could not decode payload:', e);
+    }
+  }
+
+  if (to || card) {
+    return {
+      card: card || 'birthday',
+      to: to || 'Friend',
+      from: from || 'Someone Special',
+      msg: msg || 'You bring so much sunshine and joy into my life. Every day is magical with you!'
+    };
+  }
+  return null;
+}
+
+function checkAndRenderSharedCard() {
+  const data = parseCardDataFromURL();
+  if (data) {
+    document.title = `${data.to}, you have a special surprise from ${data.from}! ✨ | WishCard`;
+    document.body.style.overflow = 'hidden';
+    
+    // Hide all base page content so recipient sees only the dedicated card viewport
+    document.querySelectorAll('body > *').forEach(el => {
+      if (el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') {
+        el.style.display = 'none';
+      }
+    });
+
+    renderRecipientExperience(data, false);
+    return true;
+  }
+  return false;
+}
+
+/* ==========================================================================
+   DEDICATED RECIPIENT CARD EXPERIENCE (FULLSCREEN INTERACTIVE VIEWPORT)
+   ========================================================================== */
+function renderRecipientExperience(data, isPreview = false) {
+  const existing = document.getElementById('wishcard-recipient-viewport');
+  if (existing) existing.remove();
+
+  const viewport = document.createElement('div');
+  viewport.id = 'wishcard-recipient-viewport';
+  viewport.style.cssText = `
+    position: fixed; inset: 0; z-index: 100000;
+    background: radial-gradient(circle at 50% 20%, #ffeef6 0%, #ffd6e7 45%, #fce4ec 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow-y: auto; overflow-x: hidden; font-family: 'Poppins', sans-serif;
+    padding: 1rem; box-sizing: border-box;
+  `;
+
+  if (!document.getElementById('wishcard-recipient-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'wishcard-recipient-styles';
+    styleEl.innerHTML = `
+      @keyframes floatBalloon {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-14px) rotate(3deg); }
+      }
+      @keyframes flameGlow {
+        0%, 100% { transform: scale(1) rotate(-2deg); opacity: 0.95; }
+        50% { transform: scale(1.18) rotate(2deg); opacity: 1; filter: drop-shadow(0 0 10px #ff9800); }
+      }
+      @keyframes puffFade {
+        0% { transform: translateY(0) scale(1); opacity: 0.8; }
+        100% { transform: translateY(-30px) scale(2.2); opacity: 0; }
+      }
+      @keyframes bounceIn {
+        0% { transform: scale(0.65); opacity: 0; }
+        70% { transform: scale(1.06); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes popOut {
+        0% { transform: scale(1); opacity: 1; }
+        40% { transform: scale(1.3); opacity: 0.8; }
+        100% { transform: scale(0); opacity: 0; }
+      }
+      @keyframes letterScroll {
+        0% { transform: translateY(30px) scale(0.92); opacity: 0; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+      }
+      .interactive-balloon {
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .interactive-balloon:hover {
+        transform: scale(1.1) !important;
+        filter: brightness(1.08);
+      }
+      .interactive-balloon:active {
+        transform: scale(0.92) !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  const { to, from, msg, card } = data;
+
+  // Top Bar
+  const topBar = document.createElement('div');
+  topBar.style.cssText = `
+    position: absolute; top: 1rem; left: 1rem; right: 1rem;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 10;
+  `;
+  topBar.innerHTML = `
+    <a href="/" style="display: flex; align-items: center; gap: 0.45rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); padding: 0.45rem 0.95rem; border-radius: 999px; text-decoration: none; color: #9b2a6e; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">
+      <img src="assets/logo.png" style="width: 22px; height: 22px; object-fit: contain;" alt="WishCard" />
+      <span>WishCard</span>
+    </a>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button id="rcp-sound-btn" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: none; padding: 0.45rem 0.85rem; border-radius: 999px; cursor: pointer; color: #9b2a6e; font-size: 0.825rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">
+        <span>🔊</span> Sound ON
+      </button>
+      ${isPreview ? `
+        <button id="rcp-close-btn" title="Close Preview" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; color: #666; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">&times;</button>
+      ` : ''}
+    </div>
+  `;
+  viewport.appendChild(topBar);
+
+  const soundBtn = topBar.querySelector('#rcp-sound-btn');
+  soundBtn.addEventListener('click', () => {
+    SoundFX.enabled = !SoundFX.enabled;
+    soundBtn.innerHTML = SoundFX.enabled ? '<span>🔊</span> Sound ON' : '<span>🔇</span> Muted';
+  });
+
+  if (isPreview) {
+    topBar.querySelector('#rcp-close-btn').addEventListener('click', () => {
+      viewport.remove();
+    });
+  }
+
+  // Card Content Stage Box
+  const stageBox = document.createElement('div');
+  stageBox.id = 'rcp-stage-container';
+  stageBox.style.cssText = `
+    width: 100%; max-width: 440px; min-height: 560px;
+    background: #ffffff; border-radius: 2rem;
+    box-shadow: 0 25px 60px rgba(155, 42, 110, 0.2), 0 10px 20px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; padding: 2rem 1.75rem; box-sizing: border-box;
+    text-align: center; margin: auto; animation: bounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  `;
+  viewport.appendChild(stageBox);
+  document.body.appendChild(viewport);
+
+  // Route to the appropriate occasion flow
+  if (card === 'birthday') {
+    renderBirthdayFlow(stageBox, to, from, msg);
+  } else if (card === 'proposal' || card === 'valentine') {
+    renderProposalFlow(stageBox, to, from, msg);
+  } else if (card === 'sorry') {
+    renderSorryFlow(stageBox, to, from, msg);
+  } else {
+    renderGeneralCardFlow(stageBox, to, from, msg, card);
+  }
+}
+
+/* ==========================================================================
+   1. BIRTHDAY INTERACTIVE FLOW (DELIVERY -> BALLOONS -> CAKE -> LETTER)
+   ========================================================================== */
+function renderBirthdayFlow(container, to, from, msg) {
+  // STAGE 1: Sealed Delivery Box
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.5s ease; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 5rem; line-height: 1; margin-bottom: 1.25rem; animation: floatBalloon 3s ease-in-out infinite; filter: drop-shadow(0 10px 15px rgba(233,30,140,0.25)); cursor: pointer;" id="stage1-box">
+        🎁
+      </div>
+      <div style="background: #fdf2f8; border: 1.5px dashed #f472b6; border-radius: 1rem; padding: 0.6rem 1.25rem; margin-bottom: 1rem; display: inline-block;">
+        <span style="font-size: 0.85rem; color: #be185d; font-weight: 600;">💌 From: <b>${from}</b></span>
+      </div>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.85rem; color: #831843; margin: 0 0 0.5rem; line-height: 1.2;">
+        A Special Birthday Surprise!
+      </h2>
+      <p style="color: #6b7280; font-size: 0.95rem; margin: 0 0 1.75rem; max-width: 320px;">
+        For <b>${to}</b> with all my heart. Tap below to begin your celebration!
+      </p>
+      <button id="bday-step1-btn" style="background: linear-gradient(135deg, #e91e8c, #c026d3); color: #fff; border: none; border-radius: 999px; padding: 0.9rem 2.25rem; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(233,30,140,0.4); transition: transform 0.2s;">
+        Tap to Open Surprise ✨
+      </button>
+    </div>
+  `;
+
+  const boxBtn = container.querySelector('#bday-step1-btn');
+  const giftBox = container.querySelector('#stage1-box');
+  const triggerNext = () => {
+    SoundFX.playChime();
+    fireConfetti(container);
+    startBirthdayBalloonStage(container, to, from, msg);
+  };
+  boxBtn.addEventListener('click', triggerNext);
+  giftBox.addEventListener('click', triggerNext);
+}
+
+function startBirthdayBalloonStage(container, to, from, msg) {
+  // STAGE 2: Interactive Balloon Pop Challenge
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.4s ease; width: 100%;">
+      <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #db2777; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">
+        Birthday Challenge 🎈
+      </span>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.65rem; color: #831843; margin: 0 0 0.4rem;">
+        Pop all balloons, ${to}!
+      </h2>
+      <p id="bday-balloon-hint" style="color: #6b7280; font-size: 0.9rem; margin: 0 0 1.5rem;">
+        Tap each balloon to release your wishes (4 remaining)
+      </p>
+
+      <div id="balloon-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 280px; margin: 0 auto 1.5rem;">
+        <div class="interactive-balloon" data-idx="1" style="background: linear-gradient(135deg, #ff9a9e, #fecfef); border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(255,154,158,0.45); animation: floatBalloon 3s ease-in-out infinite;">
+          <span style="font-size: 2.25rem;">🎈</span>
+          <span style="font-size: 0.75rem; font-weight: 700; color: #881337;">Love</span>
+        </div>
+        <div class="interactive-balloon" data-idx="2" style="background: linear-gradient(135deg, #fbc2eb, #a6c1ee); border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(166,193,238,0.45); animation: floatBalloon 3.3s ease-in-out infinite 0.3s;">
+          <span style="font-size: 2.25rem;">🎂</span>
+          <span style="font-size: 0.75rem; font-weight: 700; color: #4c1d95;">Joy</span>
+        </div>
+        <div class="interactive-balloon" data-idx="3" style="background: linear-gradient(135deg, #f6d365, #fda085); border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(253,160,133,0.45); animation: floatBalloon 2.8s ease-in-out infinite 0.6s;">
+          <span style="font-size: 2.25rem;">🌟</span>
+          <span style="font-size: 0.75rem; font-weight: 700; color: #78350f;">Success</span>
+        </div>
+        <div class="interactive-balloon" data-idx="4" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(143,211,244,0.45); animation: floatBalloon 3.5s ease-in-out infinite 0.9s;">
+          <span style="font-size: 2.25rem;">✨</span>
+          <span style="font-size: 0.75rem; font-weight: 700; color: #14532d;">Smile</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let remaining = 4;
+  const hintEl = container.querySelector('#bday-balloon-hint');
+  const balloons = container.querySelectorAll('.interactive-balloon');
+
+  balloons.forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.dataset.popped) return;
+      b.dataset.popped = 'true';
+
+      SoundFX.playPop();
+      fireConfetti(b);
+
+      b.style.animation = 'popOut 0.25s forwards';
+      remaining--;
+
+      if (remaining > 0) {
+        hintEl.textContent = `Great! Tap each balloon to release your wishes (${remaining} remaining)`;
+      } else {
+        hintEl.textContent = `🎉 Woohoo! All balloons popped! Bringing your cake...`;
+        SoundFX.playFanfare();
+        setTimeout(() => {
+          startBirthdayCakeStage(container, to, from, msg);
+        }, 800);
+      }
+    });
+  });
+}
+
+function startBirthdayCakeStage(container, to, from, msg) {
+  // STAGE 3: Cake & Candle Blow
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.4s ease; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #db2777; letter-spacing: 0.05em; display: block; margin-bottom: 0.3rem;">
+        Make A Wish 🕯️
+      </span>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.65rem; color: #831843; margin: 0 0 1rem;">
+        Blow out your candle, ${to}!
+      </h2>
+
+      <!-- Cake Artwork -->
+      <div style="position: relative; width: 160px; height: 160px; margin: 0 auto 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" id="candle-cake-wrap">
+        <div id="candle-flame" style="font-size: 2rem; position: absolute; top: 10px; animation: flameGlow 0.8s infinite ease-in-out; transition: all 0.3s;">
+          🔥
+        </div>
+        <div style="width: 14px; height: 35px; background: repeating-linear-gradient(45deg, #f43f5e, #f43f5e 4px, #ffffff 4px, #ffffff 8px); border-radius: 4px; position: absolute; top: 38px;"></div>
+        <div style="font-size: 5.5rem; line-height: 1; margin-top: 55px;" id="bday-cake-art">
+          🎂
+        </div>
+      </div>
+
+      <p id="cake-prompt-text" style="color: #6b7280; font-size: 0.95rem; margin: 0 0 1.5rem; max-width: 300px;">
+        Close your eyes, make a secret wish, and blow out the candle!
+      </p>
+
+      <button id="blow-candle-btn" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: #fff; border: none; border-radius: 999px; padding: 0.85rem 2rem; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(245,158,11,0.4); transition: transform 0.2s;">
+        Blow Candle 🕯️💨
+      </button>
+    </div>
+  `;
+
+  const blowBtn = container.querySelector('#blow-candle-btn');
+  const flame = container.querySelector('#candle-flame');
+  const cakeWrap = container.querySelector('#candle-cake-wrap');
+  const promptText = container.querySelector('#cake-prompt-text');
+
+  let blown = false;
+
+  const handleBlow = () => {
+    if (blown) return;
+    blown = true;
+
+    SoundFX.playPuff();
+    flame.style.animation = 'puffFade 0.6s forwards';
+
+    setTimeout(() => {
+      flame.innerHTML = '💨';
+      promptText.innerHTML = `🌟 <b>Wish Made!</b> Now cut your cake and open your letter!`;
+      blowBtn.textContent = 'Cut Birthday Cake 🍰';
+      blowBtn.style.background = 'linear-gradient(135deg, #e91e8c, #c026d3)';
+      blowBtn.style.boxShadow = '0 8px 24px rgba(233,30,140,0.4)';
+
+      blowBtn.onclick = () => {
+        SoundFX.playFanfare();
+        fireConfetti(container);
+        startLetterRevealStage(container, to, from, msg, 'birthday');
+      };
+    }, 400);
+  };
+
+  blowBtn.addEventListener('click', handleBlow);
+  cakeWrap.addEventListener('click', handleBlow);
+}
+
+function startLetterRevealStage(container, to, from, msg, occasion) {
+  // STAGE 4: Heartfelt Handwritten Letter
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  container.innerHTML = `
+    <div style="animation: letterScroll 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <span style="font-size: 2.5rem; margin-bottom: 0.25rem;">💌</span>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.7rem; color: #831843; margin: 0 0 0.25rem;">
+        Happy Birthday, ${to}! 🎂
+      </h2>
+      <span style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 1rem;">${today}</span>
+
+      <!-- Letter Body -->
+      <div style="background: #fffdfa; border: 1.5px solid #fce7f3; border-radius: 1.25rem; padding: 1.5rem; width: 100%; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.06); text-align: left; margin-bottom: 1.5rem; position: relative;">
+        <div style="font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: #9d174d; margin-bottom: 0.75rem;">
+          Dearest ${to},
+        </div>
+        <p id="letter-msg-body" style="font-family: 'Caveat', cursive, sans-serif; font-size: 1.35rem; color: #374151; line-height: 1.6; margin: 0 0 1rem; min-height: 70px;">
+          ${msg}
+        </p>
+        <div style="text-align: right; border-top: 1px dashed #fce7f3; padding-top: 0.75rem;">
+          <span style="font-size: 0.85rem; color: #9ca3af;">With all my love & wishes,</span><br/>
+          <span style="font-family: 'Caveat', cursive, sans-serif; font-size: 1.5rem; font-weight: 700; color: #be185d;">~ ${from} ❤️</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; flex-direction: column; gap: 0.65rem; width: 100%;">
+        <a id="thank-wa-btn" href="https://api.whatsapp.com/send?text=${encodeURIComponent(`Thank you so much ${from} for the beautiful WishCard birthday surprise! ❤️ I loved it!`)}" target="_blank" rel="noopener noreferrer" style="background: #25D366; color: #fff; text-decoration: none; border-radius: 999px; padding: 0.75rem 1rem; font-size: 0.925rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(37,211,102,0.35);">
+          <span>💬</span> Say Thanks to ${from} on WhatsApp
+        </a>
+        <div style="display: flex; gap: 0.5rem; width: 100%;">
+          <button id="replay-btn" style="flex: 1; background: #fdf2f8; border: 1.5px solid #f472b6; color: #be185d; border-radius: 999px; padding: 0.7rem; font-size: 0.875rem; font-weight: 600; cursor: pointer;">
+            Replay 🔄
+          </button>
+          <a href="/" style="flex: 1; background: #fafafa; border: 1.5px solid #e5e7eb; color: #4b5563; text-decoration: none; border-radius: 999px; padding: 0.7rem; font-size: 0.875rem; font-weight: 600; display: flex; align-items: center; justify-content: center;">
+            Make a Card 💖
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  fireConfetti(container);
+  container.querySelector('#replay-btn').addEventListener('click', () => {
+    renderBirthdayFlow(container, to, from, msg);
+  });
+}
+
+/* ==========================================================================
+   2. PROPOSAL FLOW (RUNAWAY "NO" BUTTON -> "YES" -> CONFETTI LOVE LETTER)
+   ========================================================================== */
+function renderProposalFlow(container, to, from, msg) {
+  let yesScale = 1;
+  const dodges = [
+    '"No" seems a bit shy! 🙈',
+    'Are you really sure? 🥺',
+    'Think again! 😜',
+    'Error 404: "No" not found! 😂',
+    'You cannot reject this love! 💘',
+    'Only "Yes" is accepted! 💍'
+  ];
+  let dodgeIdx = 0;
+
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.5s ease; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 4.5rem; margin-bottom: 0.75rem; animation: floatBalloon 3s infinite ease-in-out;">
+        💑
+      </div>
+      <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #e11d48; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">
+        The Big Question 💍
+      </span>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.75rem; color: #881337; margin: 0 0 1rem; line-height: 1.3;">
+        ${to}, will you be forever mine?
+      </h2>
+      <p id="prop-hint" style="color: #6b7280; font-size: 0.95rem; margin: 0 0 1.75rem; min-height: 24px;">
+        Choose your answer carefully... ❤️
+      </p>
+
+      <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; width: 100%; position: relative; height: 110px;">
+        <button id="prop-yes-btn" style="background: linear-gradient(135deg, #e11d48, #be123c); color: #fff; border: none; border-radius: 999px; padding: 0.9rem 2.25rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(225,29,72,0.4); transform: scale(${yesScale}); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 5;">
+          Yes! 💖
+        </button>
+        <button id="prop-no-btn" style="background: #f3f4f6; color: #4b5563; border: 1.5px solid #d1d5db; border-radius: 999px; padding: 0.85rem 1.75rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; position: relative; transition: all 0.2s ease;">
+          No 🙈
+        </button>
+      </div>
+    </div>
+  `;
+
+  const yesBtn = container.querySelector('#prop-yes-btn');
+  const noBtn = container.querySelector('#prop-no-btn');
+  const hintEl = container.querySelector('#prop-hint');
+
+  const dodgeNo = (e) => {
+    if (e) e.preventDefault();
+    SoundFX.playPop();
+
+    const maxX = 120;
+    const maxY = 45;
+    const randX = (Math.random() - 0.5) * maxX * 2;
+    const randY = (Math.random() - 0.5) * maxY * 2;
+
+    noBtn.style.transform = `translate(${randX}px, ${randY}px)`;
+    hintEl.textContent = dodges[dodgeIdx % dodges.length];
+    dodgeIdx++;
+
+    yesScale = Math.min(yesScale + 0.15, 1.7);
+    yesBtn.style.transform = `scale(${yesScale})`;
+  };
+
+  noBtn.addEventListener('mouseenter', dodgeNo);
+  noBtn.addEventListener('click', dodgeNo);
+  noBtn.addEventListener('touchstart', dodgeNo);
+
+  yesBtn.addEventListener('click', () => {
+    SoundFX.playFanfare();
+    fireConfetti(container);
+    startLetterRevealStage(container, to, from, msg, 'proposal');
+  });
+}
+
+/* ==========================================================================
+   3. SORRY / APOLOGY FLOW (FORGIVENESS METER -> APOLOGY LETTER)
+   ========================================================================== */
+function renderSorryFlow(container, to, from, msg) {
+  let meter = 0;
+  const stages = [
+    { pct: 0, text: 'Tap the button to send forgiveness ❤️', mood: '🥺' },
+    { pct: 25, text: 'Heart warming up a little... 🥹', mood: '🥺' },
+    { pct: 50, text: 'Feeling much better now... 🌸', mood: '☺️' },
+    { pct: 75, text: 'Almost completely forgiven! 💖', mood: '🥰' },
+    { pct: 100, text: '100% Forgiven! Yay! 🎉', mood: '🥳' },
+    { pct: 120, text: 'BONUS LOVE & HUGS UNLOCKED! 🤗', mood: '💖' }
+  ];
+  let stageIndex = 0;
+
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.5s ease; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div id="sorry-mood" style="font-size: 5rem; margin-bottom: 0.75rem; animation: floatBalloon 3s infinite ease-in-out;">
+        🥺
+      </div>
+      <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #ea580c; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">
+        Heartfelt Apology 🙏
+      </span>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.75rem; color: #9a3412; margin: 0 0 0.5rem;">
+        I am so sorry, ${to}
+      </h2>
+      <p id="sorry-stage-desc" style="color: #6b7280; font-size: 0.925rem; margin: 0 0 1.25rem;">
+        Tap below to send forgiveness ❤️
+      </p>
+
+      <!-- Forgiveness Meter Bar -->
+      <div style="width: 100%; max-width: 280px; background: #fee2e2; border-radius: 999px; height: 20px; overflow: hidden; margin-bottom: 1.5rem; border: 1.5px solid #fca5a5;">
+        <div id="sorry-progress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f43f5e, #fb7185); border-radius: 999px; transition: width 0.3s ease;"></div>
+      </div>
+
+      <button id="sorry-tap-btn" style="background: linear-gradient(135deg, #f43f5e, #e11d48); color: #fff; border: none; border-radius: 999px; padding: 0.9rem 2.25rem; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(244,63,94,0.4); transition: transform 0.2s;">
+        Send Forgiveness ❤️
+      </button>
+    </div>
+  `;
+
+  const tapBtn = container.querySelector('#sorry-tap-btn');
+  const bar = container.querySelector('#sorry-progress');
+  const moodEl = container.querySelector('#sorry-mood');
+  const descEl = container.querySelector('#sorry-stage-desc');
+
+  tapBtn.addEventListener('click', () => {
+    SoundFX.playPop();
+    fireConfetti(tapBtn);
+
+    stageIndex = Math.min(stageIndex + 1, stages.length - 1);
+    const curr = stages[stageIndex];
+
+    bar.style.width = `${Math.min(curr.pct, 100)}%`;
+    moodEl.textContent = curr.mood;
+    descEl.textContent = curr.text;
+
+    if (curr.pct >= 100) {
+      tapBtn.textContent = 'Read Apology Letter 💌';
+      tapBtn.onclick = () => {
+        SoundFX.playFanfare();
+        startLetterRevealStage(container, to, from, msg, 'sorry');
+      };
+    }
+  });
+}
+
+/* ==========================================================================
+   4. GENERAL CARD FLOW (ANNIVERSARY, FRIENDSHIP, THANK YOU, PUZZLE)
+   ========================================================================== */
+function renderGeneralCardFlow(container, to, from, msg, occasion) {
+  const iconMap = {
+    'anniversary': '💍',
+    'friendship': '🫂',
+    'thank-you': '💐',
+    'puzzle': '🧩'
+  };
+  const icon = iconMap[occasion] || '✨';
+
+  container.innerHTML = `
+    <div style="animation: bounceIn 0.5s ease; width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 5rem; margin-bottom: 1rem; animation: floatBalloon 3s infinite ease-in-out;">
+        ${icon}
+      </div>
+      <div style="background: #fdf2f8; border: 1.5px dashed #f472b6; border-radius: 1rem; padding: 0.5rem 1.25rem; margin-bottom: 1rem;">
+        <span style="font-size: 0.85rem; color: #be185d; font-weight: 600;">💌 From: <b>${from}</b></span>
+      </div>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 1.85rem; color: #831843; margin: 0 0 0.5rem; line-height: 1.2;">
+        A Special Surprise for ${to}!
+      </h2>
+      <p style="color: #6b7280; font-size: 0.95rem; margin: 0 0 1.75rem; max-width: 320px;">
+        Tap below to reveal the interactive surprise made just for you.
+      </p>
+      <button id="gen-open-btn" style="background: linear-gradient(135deg, #e91e8c, #c026d3); color: #fff; border: none; border-radius: 999px; padding: 0.9rem 2.25rem; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(233,30,140,0.4); transition: transform 0.2s;">
+        Open Surprise ✨
+      </button>
+    </div>
+  `;
+
+  container.querySelector('#gen-open-btn').addEventListener('click', () => {
+    SoundFX.playFanfare();
+    fireConfetti(container);
+    startLetterRevealStage(container, to, from, msg, occasion);
+  });
+}
+
+/* ==========================================================================
+   WISHCARD STUDIO MODAL & ENHANCED LINK SHARING
+   ========================================================================== */
 window.openStudio = (initialOccasion = 'birthday') => {
   const existing = document.getElementById('card-studio-modal');
   if (existing) existing.remove();
@@ -941,7 +1614,7 @@ window.openStudio = (initialOccasion = 'birthday') => {
       </div>
 
       <!-- Form Body -->
-      <div style="padding: 1.75rem; max-height: 80vh; overflow-y: auto;">
+      <div id="studio-body" style="padding: 1.75rem; max-height: 80vh; overflow-y: auto;">
         <p style="margin: 0 0 1.25rem; font-size: 0.9rem; color: #666;">Craft a personalized interactive card you can send as a private link right away.</p>
 
         <!-- Occasion Select -->
@@ -957,24 +1630,50 @@ window.openStudio = (initialOccasion = 'birthday') => {
 
         <!-- Recipient Name -->
         <label style="display: block; font-size: 0.825rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b2a6e; margin-bottom: 0.4rem;">Recipient's Name</label>
-        <input id="studio-to" type="text" placeholder="e.g. Divya, Sarah, My Love" value="Divya" style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.95rem; margin-bottom: 1.25rem; box-sizing: border-box; outline: none; font-family: inherit;" />
+        <input id="studio-to" type="text" placeholder="e.g. Mahmud, Sarah, My Love" value="Mahmud" style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.95rem; margin-bottom: 1.25rem; box-sizing: border-box; outline: none; font-family: inherit;" />
 
         <!-- Sender Name -->
         <label style="display: block; font-size: 0.825rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b2a6e; margin-bottom: 0.4rem;">Your Name</label>
-        <input id="studio-from" type="text" placeholder="e.g. Mahmud" value="Someone Special" style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.95rem; margin-bottom: 1.25rem; box-sizing: border-box; outline: none; font-family: inherit;" />
+        <input id="studio-from" type="text" placeholder="e.g. Fahim" value="Fahim" style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.95rem; margin-bottom: 1.25rem; box-sizing: border-box; outline: none; font-family: inherit;" />
 
         <!-- Personal Message -->
         <label style="display: block; font-size: 0.825rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b2a6e; margin-bottom: 0.4rem;">Heartfelt Message</label>
         <textarea id="studio-msg" rows="3" placeholder="Write your heartfelt note here..." style="width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.95rem; margin-bottom: 1.5rem; box-sizing: border-box; outline: none; resize: vertical; font-family: inherit;">You bring so much sunshine and joy into my life. Every day is magical with you!</textarea>
 
         <!-- Action Buttons -->
-        <div style="display: flex; gap: 0.75rem;">
+        <div id="studio-actions-row" style="display: flex; gap: 0.75rem;">
           <button id="studio-play-btn" style="flex: 1; background: linear-gradient(135deg, #e91e8c, #c026d3); color: #fff; border: none; border-radius: 0.875rem; padding: 0.85rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 14px rgba(233,30,140,0.35);">
             Play Card 🎁
           </button>
           <button id="studio-share-btn" style="flex: 1; background: #faf0f5; color: #9b2a6e; border: 1.5px solid #f2a6cd; border-radius: 0.875rem; padding: 0.85rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
             Copy Link 🔗
           </button>
+        </div>
+
+        <!-- Success Share Box (Initially Hidden) -->
+        <div id="studio-share-box" style="display: none; margin-top: 1.25rem; background: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 1rem; padding: 1.25rem; text-align: center;">
+          <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: 700; padding: 0.35rem 0.85rem; border-radius: 999px; margin-bottom: 0.75rem;">
+            ✓ Link Copied to Clipboard!
+          </div>
+          <p style="font-size: 0.875rem; color: #4b5563; margin: 0 0 1rem;">
+            Give this link to your recipient. They will open a dedicated interactive card made just for them!
+          </p>
+
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input id="studio-share-url" type="text" readonly style="flex: 1; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.6rem 0.8rem; font-size: 0.85rem; color: #374151; font-family: monospace;" />
+            <button id="studio-recopy-btn" style="background: #9b2a6e; color: #fff; border: none; border-radius: 0.5rem; padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+              Copy
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <a id="studio-wa-btn" href="#" target="_blank" rel="noopener noreferrer" style="flex: 1; background: #25D366; color: #fff; text-decoration: none; border-radius: 0.75rem; padding: 0.75rem; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">
+              <span>📲</span> Share on WhatsApp
+            </a>
+            <button id="studio-test-btn" style="flex: 1; background: #be185d; color: #fff; border: none; border-radius: 0.75rem; padding: 0.75rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(190,24,93,0.3);">
+              Open Preview 👀
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -987,80 +1686,59 @@ window.openStudio = (initialOccasion = 'birthday') => {
     if (e.target === modal) modal.remove();
   });
 
-  // Share Link Action
-  modal.querySelector('#studio-share-btn').addEventListener('click', () => {
-    const to = encodeURIComponent(modal.querySelector('#studio-to').value.trim() || 'You');
+  const getCardData = () => {
+    const to = modal.querySelector('#studio-to').value.trim() || 'You';
+    const from = modal.querySelector('#studio-from').value.trim() || 'Someone Special';
+    const msg = modal.querySelector('#studio-msg').value.trim() || 'You bring so much sunshine and joy into my life!';
     const occasion = modal.querySelector('#studio-occasion').value;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?card=${occasion}&to=${to}`;
+    return { to, from, msg, card: occasion };
+  };
 
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('✨ Private card link copied to clipboard! Share it anywhere.');
-    }).catch(() => {
-      showToast('✨ Card ready! URL: ' + shareUrl);
+  const buildShareUrl = (data) => {
+    const payload = { ...data, t: Date.now() };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    return `${window.location.origin}/?card=${data.card}&to=${encodeURIComponent(data.to)}&from=${encodeURIComponent(data.from)}&msg=${encodeURIComponent(data.msg)}&w=${b64}`;
+  };
+
+  // Copy Link Action
+  modal.querySelector('#studio-share-btn').addEventListener('click', () => {
+    const data = getCardData();
+    const shareUrl = buildShareUrl(data);
+
+    navigator.clipboard.writeText(shareUrl).finally(() => {
+      showToast('✨ Private card link copied to clipboard!');
+      const shareBox = modal.querySelector('#studio-share-box');
+      const shareInput = modal.querySelector('#studio-share-url');
+      const waBtn = modal.querySelector('#studio-wa-btn');
+      const testBtn = modal.querySelector('#studio-test-btn');
+      const reCopyBtn = modal.querySelector('#studio-recopy-btn');
+
+      shareInput.value = shareUrl;
+      shareBox.style.display = 'block';
+
+      const waText = encodeURIComponent(`Hey ${data.to}! I made a special interactive ${data.card} surprise just for you 🎁 Open it here: ${shareUrl}`);
+      waBtn.href = `https://api.whatsapp.com/send?text=${waText}`;
+
+      reCopyBtn.onclick = () => {
+        navigator.clipboard.writeText(shareUrl);
+        reCopyBtn.textContent = 'Copied!';
+        setTimeout(() => { reCopyBtn.textContent = 'Copy'; }, 2000);
+      };
+
+      testBtn.onclick = () => {
+        modal.remove();
+        renderRecipientExperience(data, true);
+      };
     });
   });
 
   // Play Live Card Action
   modal.querySelector('#studio-play-btn').addEventListener('click', () => {
-    const to = modal.querySelector('#studio-to').value.trim() || 'You';
-    const from = modal.querySelector('#studio-from').value.trim() || 'Someone';
-    const msg = modal.querySelector('#studio-msg').value.trim();
-    const occasion = modal.querySelector('#studio-occasion').value;
-
+    const data = getCardData();
     modal.remove();
-    playFullscreenCard(occasion, to, from, msg);
+    renderRecipientExperience(data, true);
   });
 };
-
-function playFullscreenCard(occasion, to, from, msg) {
-  const player = document.createElement('div');
-  player.id = 'fullscreen-card-player';
-  player.style.cssText = `
-    position: fixed; inset: 0; z-index: 10000;
-    background: radial-gradient(circle at center, #2d0a2d 0%, #150518 100%);
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    padding: 1.5rem; animation: fadeIn 0.3s ease;
-  `;
-
-  player.innerHTML = `
-    <button onclick="this.closest('#fullscreen-card-player').remove()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
-
-    <div style="width: 100%; max-width: 380px; height: 580px; background: #fff; border-radius: 2rem; box-shadow: 0 30px 80px rgba(0,0,0,0.5); overflow: hidden; position: relative; display: flex; flex-direction: column; font-family: 'Poppins', sans-serif;">
-      <div style="background: #fdf2f8; padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <span style="font-size: 0.8rem; font-weight: 600; color: #9b2a6e;">WishCard Surprise</span>
-        <span style="font-size: 0.8rem; color: #999;">Just now</span>
-      </div>
-
-      <div id="player-stage" style="flex: 1; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(180deg, #fff 0%, #fff0f5 100%);">
-        <span style="font-size: 4rem; margin-bottom: 1rem; animation: floatBounce 2s ease infinite;">🎁</span>
-        <h2 style="font-family: 'Playfair Display', serif; color: #9b2a6e; font-size: 1.8rem; margin: 0 0 0.5rem;">For ${to}</h2>
-        <p style="color: #666; font-size: 0.95rem; margin-bottom: 1.5rem;">A special surprise prepared with all my love.</p>
-        <button id="player-open-btn" style="background: linear-gradient(135deg, #e91e8c, #c026d3); color: #fff; border: none; border-radius: 999px; padding: 0.8rem 2rem; font-weight: 600; font-size: 1rem; cursor: pointer; box-shadow: 0 6px 20px rgba(233,30,140,0.4);">
-          Tap to Open ✨
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(player);
-
-  player.querySelector('#player-open-btn').addEventListener('click', () => {
-    fireConfetti(player);
-    const stage = player.querySelector('#player-stage');
-
-    stage.innerHTML = `
-      <div style="animation: noteAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; width: 100%;">
-        <span style="font-size: 3rem; margin-bottom: 0.5rem; display: block;">💖🎂✨</span>
-        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #8a0f36; margin: 0 0 0.5rem;">Dearest ${to},</h3>
-        <div style="background: #fff; border: 1.5px solid #fce7f3; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: left;">
-          <p style="font-family: 'Caveat', cursive; font-size: 1.2rem; color: #4a2835; line-height: 1.5; margin: 0;">${msg}</p>
-        </div>
-        <p style="font-size: 0.9rem; color: #9b2a6e; font-weight: 600; margin: 0 0 1.25rem;">With all my love,<br><span style="font-family: 'Caveat', cursive; font-size: 1.3rem;">${from}</span></p>
-        <button onclick="this.closest('#fullscreen-card-player').remove()" style="background: #fdf2f8; border: 1.5px solid #f472b6; color: #be185d; border-radius: 999px; padding: 0.6rem 1.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">Close Card ❤️</button>
-      </div>
-    `;
-  });
-}
 
 /* ==========================================================================
    7. HELPER UTILITIES: TOAST, TYPEWRITER, CONFETTI
