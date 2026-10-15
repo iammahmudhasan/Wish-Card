@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "cleanUrls": true,
   "trailingSlash": false,
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/cards", "destination": "/cards.html" },
     { "source": "/cards/(.*)", "destination": "/cards.html" }
