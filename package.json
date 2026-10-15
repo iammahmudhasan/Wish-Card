@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "WishCard - Personalized Interactive Digital Greeting Cards",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js"
+    "dev": "node dev-server.js"
   },
   "keywords": [
     "wish-card",

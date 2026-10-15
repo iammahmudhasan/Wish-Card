@@ -70,8 +70,8 @@ Wish-Card/
 │   └── ...
 ├── index.html                  # Main landing page with all interactive card simulations
 ├── cards.html                  # Occasions catalog & cards browse page
-├── app.js                      # Core autoplay & interactivity engine
-├── server.js                   # Lightweight static file HTTP server
+├── dev-server.js               # Lightweight local development HTTP server
+├── assets/app.js               # Core autoplay & interactivity engine
 ├── 0kcx.css                    # Core component styles, bento grid, phone frames, and animations
 ├── 0vz8.css                    # Navigation bar & mobile drawer styles
 ├── 0wxh.css                    # Tailwind utility and typography classes
